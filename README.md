@@ -92,3 +92,10 @@ pip install -r requirements.txt
 
 python app.py
 ```
+## Project Screenshots
+
+### Home Page
+![Home Page](images/Home_page.png)
+
+### Prediction Result
+![Prediction Result](images/Prediction_result.png)
