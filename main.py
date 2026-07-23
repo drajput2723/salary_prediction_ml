@@ -1,7 +1,6 @@
-from venv import create
-
 import pandas as pd
 import numpy as np
+
 #dataset load
 data = pd.read_csv("Clean_Salary_Data.csv")
 #First 5 rows
@@ -39,6 +38,21 @@ data.to_csv("Clean_Salary_Data.csv", index=False)
 print(sorted(data["Education Level"].unique()))
 print(sorted(data["Job Title"].unique()))
 
+# Education Level cleaning
+data["Education Level"] = data["Education Level"].str.strip().replace({
+    "Bachelor's Degree": "Bachelor's",
+    "Master's Degree": "Master's",
+    "phD": "PhD"
+})
+
+# check - ab sirf 4 unique values honi chahiye
+print(sorted(data["Education Level"].unique()))
+
+job_counts = data["Job Title"].value_counts()
+rare_jobs = job_counts[job_counts < 10].index
+data["Job Title"] = data["Job Title"].replace(rare_jobs, "Other")
+print(data["Job Title"].nunique())  # ab kaafi kam categories honi chahiye
+
 #preprocessing data
 
 from sklearn.preprocessing import LabelEncoder
@@ -51,10 +65,11 @@ data["Gender"] = gender_encoder.fit_transform(data["Gender"])
 education_encoder = LabelEncoder()
 data["Education Level"] = education_encoder.fit_transform(data["Education Level"])
 
-# Job Title Encoder
-job_encoder = LabelEncoder()
-data["Job Title"] = job_encoder.fit_transform(data["Job Title"])
+# Job Title - One-Hot Encoding
+data = pd.get_dummies(data, columns=["Job Title"], drop_first=True)
+
 print(data.head())
+print(data.shape)
 
 #feature selection
 X = data.drop("Salary", axis=1)
@@ -93,28 +108,23 @@ comparison = pd.DataFrame({
 print(comparison.head())
 
 #accuracy/evaluation
-from sklearn.metrics import r2_score
+from sklearn.metrics import (
+    r2_score,
+    mean_absolute_error,
+    mean_squared_error
+)
 
-score = r2_score(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+mae = mean_absolute_error(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+rmse = np.sqrt(mse)
 
-print(score)
-
-#mean absolute error
-from sklearn.metrics import mean_absolute_error
-
-print(mean_absolute_error(y_test, y_pred))
-
-#mean squared error
-from sklearn.metrics import mean_squared_error
-
-print(mean_squared_error(y_test, y_pred))
-
-#root mean squared error
-import numpy as np
-
-rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-
-print(rmse)
+print("\n========== MODEL EVALUATION ==========")
+print(f"R² Score  : {r2:.4f}")
+print(f"MAE       : {mae:.2f}")
+print(f"MSE       : {mse:.2f}")
+print(f"RMSE      : {rmse:.2f}")
+print("======================================")
 
 #graphs
 import matplotlib.pyplot as plt
@@ -133,13 +143,25 @@ import joblib
 joblib.dump(model, "salary_model.pkl")
 joblib.dump(gender_encoder, "gender_encoder.pkl")
 joblib.dump(education_encoder, "education_encoder.pkl")
-joblib.dump(job_encoder, "job_encoder.pkl")
+
 
 print("Model & Encoders Saved Successfully")
 
+
+# Save feature column order (needed for app.py to build correct input)
+feature_columns = X.columns.tolist()
+joblib.dump(feature_columns, "feature_columns.pkl")
+
+# Save list of job titles (after "Other" grouping) for dropdown in app.py
+job_titles_list = sorted(data["Job Title"].unique().tolist()) if "Job Title" in data.columns else None
+# Since Job Title is now one-hot encoded, get list from original column names
+job_title_columns = [col.replace("Job Title_", "") for col in X.columns if col.startswith("Job Title_")]
+joblib.dump(job_title_columns, "job_titles.pkl")
+
+print("Feature columns & job titles saved successfully")
+
 print("Model Saved Successfully")
 print(data["Education Level"].unique())
-print(data["Job Title"].unique())
 
 
 

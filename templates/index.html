@@ -2,83 +2,233 @@
 <html>
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Salary Prediction System</title>
 
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
-<h1>Salary Prediction System</h1>
+<div class="container">
 
-<form action="/predict" method="POST">
+    <div class="card">
 
-    <input
-        type="number"
-        name="age"
-        placeholder="Enter Age"
-        required>
+        <h1>💼 Salary Prediction System</h1>
 
-    <br><br>
+        <p class="subtitle">
+            Predict Employee Salary using Machine Learning
+        </p>
 
-    <select name="gender">
+        <form id="salaryForm" action="/predict" method="POST">
 
-        {% for key,value in genders.items() %}
+        
 
-        <option value="{{key}}">{{value}}</option>
+            <label>Age</label>
 
-        {% endfor %}
+            <input
+    type="number"
+    id="age"
+    name="age"
+    placeholder="Enter Age"
+    value="{{ age }}"
+    required>
 
-    </select>
+            <label>Gender</label>
 
-    <br><br>
+            <select name="gender">
+                {% for key,value in genders.items() %}
+                <option value="{{key}}" {% if key == selected_gender %}selected{% endif %}>
+    {{value}}
+</option>
+                {% endfor %}
+            </select>
 
-    <select name="education">
+            <label>Education</label>
 
-        {% for key,value in educations.items() %}
+            <select name="education">
+                {% for key,value in educations.items() %}
+                <option value="{{key}}" {% if key == selected_education %}selected{% endif %}>
+    {{value}}
+</option>
+                {% endfor %}
+            </select>
 
-        <option value="{{key}}">{{value}}</option>
+            <label>Job Title</label>
 
-        {% endfor %}
+            <select name="job">
+                {% for key,value in jobs.items() %}
+                <option value="{{key}}" {% if key == selected_job %}selected{% endif %}>
+    {{value}}
+</option>
+                {% endfor %}
+            </select>
 
-    </select>
+            <label>Years of Experience</label>
 
-    <br><br>
+            <input
+       type="number"
+       id="experience"
+       step="0.1"
+       name="experience"
+       placeholder="Enter Experience"
+       value="{{ experience }}"
+       required>
 
-    <select name="job">
+            <button type="submit" id="predictBtn">
+    🔮 Predict Salary
+</button>
+            <button type="reset" class="reset-btn">
+              🔄 Reset Form  
+            </button>
 
-        {% for key,value in jobs.items() %}
+        </form>
 
-        <option value="{{key}}">{{value}}</option>
+        {% if prediction %}
 
-        {% endfor %}
+<div class="result">
 
-    </select>
+    <h2>💰 Predicted Salary</h2>
 
-    <br><br>
+    <h1>₹ {{ "{:,.2f}".format(prediction) }}</h1>
 
-    <input
-        type="number"
-        step="0.1"
-        name="experience"
-        placeholder="Years of Experience"
-        required>
+    <hr>
 
-    <br><br>
+    <p>
 
-    <button type="submit">
+        📅 Monthly Salary
 
-        Predict Salary
+    </p>
 
-    </button>
+    <h3>
 
-</form>
+        ₹ {{ "{:,.2f}".format(monthly_salary) }}
 
-<h2>
+    </h3>
+    <hr>
 
-{{ prediction }}
+<p>
+    📈 Yearly Salary
+</p>
+<hr>
 
-</h2>
+<p>
+    🏆 Salary Level
+</p>
+
+<h3>
+    {{ salary_level }}
+</h3>
+<hr>
+
+<h2>📊 Model Performance</h2>
+
+<table class="performance-table">
+
+    <tr>
+        <th>Metric</th>
+        <th>Value</th>
+    </tr>
+
+    <tr>
+        <td>R² Score</td>
+        <td>{{ r2_score_value }}</td>
+    </tr>
+
+    <tr>
+        <td>MAE</td>
+        <td>{{ mae_value }}</td>
+    </tr>
+
+    <tr>
+        <td>RMSE</td>
+        <td>{{ rmse_value }}</td>
+    </tr>
+
+</table>
+<hr>
+
+<h2>📊 Salary Comparison Chart</h2>
+
+<div class="chart-container">
+    <canvas id="salaryChart"></canvas>
+</div>
+
+<h3>
+    ₹ {{ "{:,.2f}".format(yearly_salary) }}
+</h3>
+
+</div>
+
+{% endif %}
+
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+// ...existing code...
+<script>
+
+const ctx = document.getElementById('salaryChart');
+
+if (ctx) {
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Monthly Salary', 'Yearly Salary'],
+            datasets: [{
+                label: 'Salary',
+                data: [
+                    Number("{{ monthly_salary|default(0) }}"),
+                    Number("{{ yearly_salary|default(0) }}")
+                ],
+                backgroundColor: [
+                    '#36A2EB',
+                    '#4BC0C0'
+                ],
+                borderColor: [
+                    '#1E88E5',
+                    '#009688'
+                ],
+                borderWidth: 2,
+                borderRadius: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Monthly vs Yearly Salary'
+                }
+            },
+
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+</script>
 
 </body>
 
